@@ -216,3 +216,10 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Node (shadcn MCP + dashboard/)
+node_modules/
+npm-debug.log*
+
+# SQLite data (whatsapp/storage.py + whatsapp/agent.py checkpointer) — generated state, not source
+data/

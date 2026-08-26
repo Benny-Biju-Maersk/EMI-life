@@ -1,0 +1,21 @@
+# Phase 1 — single agent (agent/, main.py)
+anthropic
+yfinance
+pytest
+python-dotenv
+
+# Phase 2 — multi-agent orchestrator (agents/, chat.py)
+# Not currently used by the checkout-EMI-trap MVP below — kept installed,
+# not retired, per docs/product-brief.md.
+langgraph
+langgraph-supervisor
+langchain-anthropic
+langchain-core
+
+# Checkout-EMI-trap MVP (whatsapp/) — see docs/product-brief.md
+fastapi
+uvicorn[standard]
+python-multipart
+twilio
+httpx
+langgraph-checkpoint-sqlite
