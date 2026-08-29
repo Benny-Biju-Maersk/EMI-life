@@ -19,3 +19,7 @@ python-multipart
 twilio
 httpx
 langgraph-checkpoint-sqlite
+
+# Public website backend (api/) — see docs/product-brief.md's Distribution
+# section (revised 2026-08-29) and docs/decision.md #16. No new packages:
+# api/main.py reuses fastapi/uvicorn above, just a separate app instance.

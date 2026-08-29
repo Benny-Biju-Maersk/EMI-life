@@ -25,6 +25,8 @@ from tools.finance_tools import (
     get_stock_quote,
     prepayment_impact,
 )
+from tools.user_profile import get_profile, save_profile_field
+from tools.web_research import get_market_news
 
 
 @tool
@@ -154,6 +156,52 @@ def get_stock_quote_tool(symbol: str) -> str:
     return json.dumps(get_stock_quote(symbol))
 
 
+@tool
+def save_profile_field_tool(user_id: str, field: str, value: str) -> str:
+    """Save or update one durable fact about the user's finances — e.g.
+    monthly_income, essential_expenses — so future conversations (even
+    brand new ones) can use it without asking again. Use whenever the user
+    tells you a fact worth remembering long-term, not just for this
+    conversation.
+
+    Args:
+        user_id: Stable identifier for the user. Use "default_user" if no
+            per-user identity system exists yet (this REPL doesn't have one).
+        field: Short snake_case name for the fact, e.g. "monthly_income".
+        value: The value, as a string.
+    """
+    return json.dumps(save_profile_field(user_id, field, value))
+
+
+@tool
+def get_saved_profile_tool(user_id: str) -> str:
+    """Fetch every long-term fact already saved about this user (income,
+    essential expenses, etc.) from past conversations. Use this BEFORE
+    asking the user something you might already know from before.
+
+    Args:
+        user_id: Stable identifier for the user. Use "default_user" if no
+            per-user identity system exists yet (this REPL doesn't have one).
+    """
+    return json.dumps(get_profile(user_id))
+
+
+@tool
+def get_market_news_tool(query: str, max_results: int = 5) -> str:
+    """Fetch recent real-time news headlines matching a query — a stock
+    name, a sector, or an economic topic — from the open web. Use for
+    "what's happening with X", "any news on X", or context behind a price
+    move. Never invent a headline or recall one from memory; always fetch.
+
+    Args:
+        query: Search terms, e.g. "Reliance Industries" or "RBI repo rate".
+        max_results: Maximum headlines to return, default 5.
+    """
+    return json.dumps(get_market_news(query, max_results))
+
+
 CREDIT_DEBT_TOOLS = [calculate_emi_tool, prepayment_impact_tool, affordability_check_tool]
 MARKETS_TOOLS = [get_stock_quote_tool]
 CHECKOUT_TOOLS = [decode_emi_offer_tool, affordability_check_tool, calculate_emi_tool]
+BUDGET_TOOLS = [get_saved_profile_tool, save_profile_field_tool, affordability_check_tool]
+RESEARCH_TOOLS = [get_market_news_tool]

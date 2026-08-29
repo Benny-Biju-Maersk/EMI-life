@@ -49,20 +49,40 @@ lending referrals or affiliate placement, it destroys the one thing users
 are trusting it for. Treat that as a hard constraint, not a later
 optimization.
 
-## Distribution: WhatsApp bot
+## Distribution: WhatsApp for the checkout moment, a public website as the primary product surface (revised 2026-08-29)
 
-Chosen over a browser extension (tighter to the actual moment, but high
-build/maintenance friction — breaks on any checkout UI change, and harder
-to get installed) and a standalone app/PWA (relies on the user remembering
-to open it before buying, which undercuts the entire "intercept the
-impulsive moment" premise).
+**Original decision, still valid for the specific job it was chosen for:**
+WhatsApp is the distribution channel for the checkout-interception moment
+itself. That reasoning is unchanged — a website (even a great one) can't
+catch someone *right before* they commit the way a message they already
+have open can; a standalone app/PWA was rejected for exactly this reason
+("relies on the user remembering to open it before buying, which
+undercuts the entire 'intercept the impulsive moment' premise"), and that
+tradeoff didn't change. The MVP is built and has been live-tested
+end-to-end (Twilio Sandbox + `whatsapp/webhook.py` + LangGraph agent with
+persistent per-sender memory + `dashboard/` to view it) — see
+`decision.md` and `flow.md`.
 
-A WhatsApp bot has near-zero install friction, meets users where they
-already are, and lets someone forward a screenshot of the checkout offer or
-just ask "about to buy a ₹40k TV on 12-month no-cost EMI, should I?" — a
-natural fit for the conversational tool-calling agent already built
-(`agent/agent.py`'s request → tool_use → tool_result loop), just retriggered
-over WhatsApp instead of a REPL.
+**Revised:** WhatsApp was proving to be a heavy *operational* dependency
+(Twilio account, signature validation, an always-on tunnel/server, Sandbox
+join-code friction for testers) relative to how "attractive" it makes the
+product feel — and separately, the North Star ("single portal for
+finance") was never well served by a chat interface in the first place; it
+needs a dashboard/multi-page/visual surface WhatsApp structurally can't
+provide. Decision: **a public website becomes the primary product
+surface**, built starting now, in parallel with continuing to validate the
+WhatsApp checkout-interception flow with real testers — not sequenced
+after it. WhatsApp is not being dropped; it moves to backend-only /
+secondary-channel status, feeding the same underlying agent and tools
+rather than being the product's front door.
+
+**What this reuses:** `dashboard/` (Next.js, already reads
+`data/finbuddy.db`) is the natural seed for the public site rather than a
+from-scratch build — today it's internal/read-only/no-auth; the work is
+adding auth and a real per-user-scoped experience on top of what's already
+there, not starting over. The backend math stays exactly where it's always
+lived — `tools/finance_tools.py` — per this repo's "logic lives once,
+every surface just wraps it" convention (see `decision.md` #2, #11, #13).
 
 ## Monetization: savings-based subscription
 
@@ -98,6 +118,15 @@ features — including the informational stock analyzer below — on top of
 that same profile rather than each starting over.** This is roughly where
 Phase 3 (SQLite/persistence) already sat in the original roadmap; it now
 serves the wedge first rather than a generic hosted web app.
+
+**Revised 2026-08-29:** the *website* piece of this sequencing is no longer
+strictly "after" — see the Distribution section above. The public site now
+starts now, in parallel with continued WhatsApp validation, rather than
+waiting for the wedge to be fully proven first. The underlying logic here
+(a per-user profile is the shared foundation everything else builds on)
+still holds and if anything matters more now — the website is what makes
+that profile visible and useful to the user directly, not just something
+the agent reads silently.
 
 ## Future feature: informational stock analyzer (not v1)
 

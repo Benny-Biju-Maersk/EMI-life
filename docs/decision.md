@@ -319,3 +319,66 @@ checkpointer (`checkpoints`/`writes` tables, LangGraph's own schema, for
 agent memory) — sharing one file rather than two, because they're the same
 underlying "what happened in this thread" data, just shaped for different
 readers (a human via the dashboard vs. the agent replaying its own state).
+
+---
+
+## 16. `web/` + `api/` — a public website, with a real API boundary instead of `dashboard/`'s direct-file-read pattern
+
+**Decision:** the distribution plan changed (see `product-brief.md`'s
+Distribution section, revised 2026-08-29) — a public website (`web/`,
+Next.js + Clerk auth) is now the primary product surface, with WhatsApp
+continuing as a secondary/backend channel. `web/` does **not** read
+`data/finbuddy.db` directly the way `dashboard/` does; it calls a new
+FastAPI service (`api/main.py`) which is the one that imports
+`tools/finance_tools.py`.
+
+**Why not extend `dashboard/` itself:** `dashboard/` was explicitly
+justified as "you, locally, no auth" (decision 15) — a public app with
+real user accounts and other people's financial data is a different
+security posture, not a login screen bolted onto the same codebase. `web/`
+is a sibling app, seeded from `dashboard/`'s already-working stack
+(Next.js 16, Tailwind v4) rather than seeding from scratch.
+
+**Why a real API instead of direct SQLite reads:** decision 15's own
+"Cost" section already named this — direct-file-read stops being
+appropriate "the moment either process needs to run somewhere the other
+can't reach its disk," which a public multi-user product guarantees will
+happen eventually (`web/` on Vercel, the backend elsewhere). Building the
+API boundary now, while the surface area is small (one endpoint), is
+cheaper than retrofitting it later once `dashboard/`'s pattern has spread
+further.
+
+**Why a separate FastAPI app from `whatsapp/webhook.py`, not new routes on
+it:** that file is Twilio-specific — TwiML replies, webhook signature
+validation against `TWILIO_AUTH_TOKEN`. `api/main.py` serves a browser
+directly with plain JSON and CORS, a different contract entirely. Same
+"one job per file" reasoning as every other split in this repo.
+
+**What's live vs. scaffolded (2026-08-29):** `api/main.py`'s
+`/decode-offer` endpoint is real and tested (matches
+`test_decode_emi_offer_hidden_processing_fee`'s known values exactly,
+verified via `TestClient`). `web/` has a landing page, a working
+`/decode` page wired to that endpoint, and Clerk auth scaffolded
+end-to-end (sign-in button, `auth()`-gated header) — but Clerk needs real
+API keys in `web/.env.local` (copy from `.env.local.example`) before
+sign-in actually works; it currently 500s on the placeholder keys, same
+credential-not-yet-added pattern as Twilio/ngrok before it. Auth-gated
+profile/history endpoints (the actual point of having accounts — reusing
+`tools/user_profile.py`'s tier-3 memory work) don't exist yet.
+
+**A `/decode-offer` is deliberately not behind auth:** same reasoning as
+the WhatsApp bot — the core "is this EMI actually free" answer shouldn't
+require an account, only saving/recalling a profile should.
+
+**Two version-drift traps hit and fixed while building this, worth knowing
+about if either package gets upgraded again:** the installed Next.js
+(16.3.3) deprecated the `middleware.ts` file convention in favor of
+`proxy.ts` mid-build; and the installed `@clerk/nextjs` (7.8.3, "Core 3")
+removed the `<SignedIn>`/`<SignedOut>` components entirely — they now
+throw at render time by design (see
+`node_modules/@clerk/nextjs/dist/.../removedControlComponents.js`).
+`web/app/layout.tsx` uses `auth()` from `@clerk/nextjs/server` instead,
+which isn't removed. Both `web/AGENTS.md` and `web/CLAUDE.md` (auto-managed
+by `next dev`) flag that this Next.js version has breaking changes from
+older training data — worth reading before assuming any remembered Next.js
+API still applies here.

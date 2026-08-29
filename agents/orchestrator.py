@@ -21,8 +21,10 @@ import os
 from langchain_anthropic import ChatAnthropic
 from langgraph_supervisor import create_supervisor
 
+from agents.budget_agent import build_budget_agent
 from agents.credit_debt_agent import build_credit_debt_agent
 from agents.markets_agent import build_markets_agent
+from agents.research_agent import build_research_agent
 
 MODEL = os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-5")
 
@@ -30,13 +32,23 @@ SUPERVISOR_PROMPT = """You are the supervisor for FinBuddy, a personal
 finance assistant for users in India. You do not answer finance questions
 yourself — you route each request to the right specialist:
 
-- credit_debt_agent: EMI/loan math, prepayment impact, purchase
-  affordability ("can I afford X", "what's my EMI", "should I prepay").
+- credit_debt_agent: one-off EMI/loan math, prepayment impact, purchase
+  affordability computed from numbers given this turn ("can I afford X",
+  "what's my EMI", "should I prepay").
 - markets_agent: current stock/market prices ("what's X trading at").
+- budget_agent: the user's ongoing month-to-month picture — remembering
+  their income/expenses across conversations, not just this one ("what's
+  my budget like", "remember my income is X", "am I in good shape
+  financially").
+- research_agent: real-time news/context — "what's happening with X",
+  "any news on X", or the reason behind a price move. Not a price lookup
+  (that's markets_agent) and never a buy/sell recommendation.
 
 Hand off to exactly one specialist per request unless the user's question
-genuinely spans both (e.g. "can I afford X after this stock drop") — in that
-case call both and combine their answers. Never invent numbers yourself.
+genuinely spans more than one (e.g. "can I afford X after this stock drop,
+and why did it drop" spans markets_agent + research_agent) — in that case
+call more than one and combine their answers. Never invent numbers or
+headlines yourself.
 """
 
 
@@ -44,9 +56,11 @@ def build_graph():
     model = ChatAnthropic(model=MODEL, max_tokens=1500)  # matches agent/agent.py's cap
     credit_debt_agent = build_credit_debt_agent(model)
     markets_agent = build_markets_agent(model)
+    budget_agent = build_budget_agent(model)
+    research_agent = build_research_agent(model)
 
     supervisor = create_supervisor(
-        agents=[credit_debt_agent, markets_agent],
+        agents=[credit_debt_agent, markets_agent, budget_agent, research_agent],
         model=model,
         prompt=SUPERVISOR_PROMPT,
     )

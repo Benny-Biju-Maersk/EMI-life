@@ -25,7 +25,13 @@ pytestmark = pytest.mark.skipif(
 def test_graph_builds_with_expected_nodes():
     graph = build_graph()
     nodes = set(graph.nodes.keys())
-    assert {"supervisor", "credit_debt_agent", "markets_agent"} <= nodes
+    assert {
+        "supervisor",
+        "credit_debt_agent",
+        "markets_agent",
+        "budget_agent",
+        "research_agent",
+    } <= nodes
 
 
 def test_credit_question_routes_to_credit_debt_agent():
