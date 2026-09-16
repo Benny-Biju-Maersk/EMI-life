@@ -7,7 +7,7 @@ every handoff/tool call along the way, same transparency main.py's
 `[tool] ...` line gives for Phase 1.
 
 Usage:
-    export ANTHROPIC_API_KEY=sk-ant-...   # or set in .env
+    export GROQ_API_KEY=gsk_...   # or set in .env
     python chat.py
 """
 

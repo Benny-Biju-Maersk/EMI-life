@@ -9,7 +9,7 @@ credit / debt / markets / wealth / profile agents).
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-export ANTHROPIC_API_KEY=sk-ant-...   # from console.anthropic.com
+export GROQ_API_KEY=gsk_...   # from console.groq.com
 python main.py
 ```
 

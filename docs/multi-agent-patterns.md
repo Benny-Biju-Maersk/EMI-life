@@ -216,3 +216,46 @@ the model to fall back on instead of calling the tool.
 categories it falls into — computed, remembered, or fetched-live — since
 each implies a different thing the system prompt has to say to keep the
 model honest about actually using it.
+
+---
+
+## 7. A sixth axis: proactive vs. reactive isn't a tool-design question at all
+
+Everything above — behavior, memory, context, action-taking, live vs.
+stored data — describes what happens once a conversation is already
+underway. None of it explains how to make FinBuddy speak *first*: remind
+someone their EMI is due, nudge them when spending drifts off track. This
+is the answer to a real question worth stating plainly: **"chatbot" vs.
+"using an LLM" isn't actually a meaningful distinction — a chatbot *is*
+an LLM being used, just without the surrounding architecture.** Proactivity
+is one piece of that surrounding architecture, and it's a structurally
+different kind of gap than anything else in this doc:
+
+- `agent/agent.py`'s loop, every Phase 2 specialist, `whatsapp/agent.py` —
+  every single one of them only runs because a message arrived. There is
+  no code path anywhere in this repo where FinBuddy decides, on its own,
+  to say something.
+- No amount of a better prompt, more tools, or a smarter supervisor fixes
+  this — it's not a reasoning problem, it's the absence of anything that
+  calls the system when *no one asked it to*.
+
+`tools/reminders.py` + `agents/reminder_agent.py` +
+`scheduler/send_reminders.py` split this into its true shape:
+
+1. **Registering intent** (`reminder_agent`, inside a normal conversation)
+   — this is just another specialist, nothing new architecturally: a tool
+   call that writes "something is due on date X" to storage.
+2. **Noticing it's due** (`tools/reminders.py:get_due_reminders`) — plain,
+   deterministic, testable data logic. Still nothing new.
+3. **Acting without being asked** (`scheduler/send_reminders.py`, run on a
+   schedule external to this whole codebase — cron, Windows Task
+   Scheduler, a cloud scheduler) — **this is the actually new piece.**
+   Nothing inside the request/response loop can be this; it has to be a
+   process that wakes up on its own and decides to push a message via
+   Twilio's REST API rather than reply to one.
+
+**Design principle:** if a feature needs FinBuddy to act without being
+asked — a reminder, an alert, a scheduled check — the honest first
+question isn't "which agent handles this" but "what wakes the system up
+when no one is talking to it." If the answer is "nothing does yet," that's
+the gap to close before any amount of agent/tool design matters.

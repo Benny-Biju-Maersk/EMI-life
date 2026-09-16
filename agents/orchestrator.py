@@ -18,15 +18,16 @@ from __future__ import annotations
 
 import os
 
-from langchain_anthropic import ChatAnthropic
+from langchain_groq import ChatGroq
 from langgraph_supervisor import create_supervisor
 
 from agents.budget_agent import build_budget_agent
 from agents.credit_debt_agent import build_credit_debt_agent
 from agents.markets_agent import build_markets_agent
+from agents.reminder_agent import build_reminder_agent
 from agents.research_agent import build_research_agent
 
-MODEL = os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-5")
+MODEL = os.environ.get("GROQ_MODEL", "openai/gpt-oss-120b")
 
 SUPERVISOR_PROMPT = """You are the supervisor for FinBuddy, a personal
 finance assistant for users in India. You do not answer finance questions
@@ -43,6 +44,9 @@ yourself — you route each request to the right specialist:
 - research_agent: real-time news/context — "what's happening with X",
   "any news on X", or the reason behind a price move. Not a price lookup
   (that's markets_agent) and never a buy/sell recommendation.
+- reminder_agent: registering a future reminder — "remind me to pay my
+  EMI on the 5th", "remind me every month about X". Not for answering
+  questions about the user's current situation.
 
 Hand off to exactly one specialist per request unless the user's question
 genuinely spans more than one (e.g. "can I afford X after this stock drop,
@@ -53,14 +57,21 @@ headlines yourself.
 
 
 def build_graph():
-    model = ChatAnthropic(model=MODEL, max_tokens=1500)  # matches agent/agent.py's cap
+    model = ChatGroq(model=MODEL, max_tokens=1500)  # matches agent/agent.py's cap
     credit_debt_agent = build_credit_debt_agent(model)
     markets_agent = build_markets_agent(model)
     budget_agent = build_budget_agent(model)
     research_agent = build_research_agent(model)
+    reminder_agent = build_reminder_agent(model)
 
     supervisor = create_supervisor(
-        agents=[credit_debt_agent, markets_agent, budget_agent, research_agent],
+        agents=[
+            credit_debt_agent,
+            markets_agent,
+            budget_agent,
+            research_agent,
+            reminder_agent,
+        ],
         model=model,
         prompt=SUPERVISOR_PROMPT,
     )

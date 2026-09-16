@@ -43,10 +43,13 @@ part of the product; see "Internal dashboard" below.
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-# .env (gitignored) holds ANTHROPIC_API_KEY, and optionally ANTHROPIC_BASE_URL /
-# ANTHROPIC_MODEL if routing through a gateway like OpenRouter instead of
-# api.anthropic.com directly — both agent/agent.py and agents/orchestrator.py
-# read the same three vars, loaded via python-dotenv.
+# .env (gitignored) holds GROQ_API_KEY and optionally GROQ_MODEL (default
+# openai/gpt-oss-120b) — agent/agent.py and agents/orchestrator.py read
+# both, loaded via python-dotenv. whatsapp/agent.py reads GROQ_VISION_MODEL
+# instead (default a Qwen3 checkpoint), since it has to read a forwarded
+# checkout screenshot and GROQ_MODEL's text-only model can't see images at
+# all. Groq's model lineup moves fast — reverify with the account's own
+# `client.models.list()` before assuming either default name still exists.
 python main.py                          # Phase 1: single-agent REPL
 python chat.py                          # Phase 2: multi-agent REPL (unused direction)
 uvicorn whatsapp.webhook:app --reload   # Checkout-EMI-trap MVP: webhook server
@@ -71,25 +74,25 @@ signature validation and the no-input branch only, not a live agent reply
 verification steps to test that by hand).
 `tests/test_agents.py` (Phase 2, unused direction) has one structural test
 (no network) plus a live routing test that's skipped automatically when no
-`ANTHROPIC_API_KEY` is set — when it does run, it makes real (billed) API
+`GROQ_API_KEY` is set — when it does run, it makes real (billed) API
 calls.
 `yfinance` is optional/lazily imported (only `get_stock_quote` needs it).
 
 ## Architecture
 
 The whole system is one request → tool_use → tool_result → response loop
-(`agent/agent.py:FinanceAgent.chat`), talking to the Anthropic Messages API
-directly (no framework). Read that file first — it's the entire agentic
-pattern in ~80 lines:
+(`agent/agent.py:FinanceAgent.chat`), talking to Groq's OpenAI-compatible
+Chat Completions API directly via the `groq` SDK (no framework). Read that
+file first — it's the entire agentic pattern in ~80 lines:
 
 1. `main.py` — terminal REPL; holds no logic, just wraps `FinanceAgent`.
 2. `agent/agent.py` — owns the conversation loop and the system prompt.
    - `messages` is the full running transcript (list of dicts), mutated in
      place across turns — conversation state lives here, not in tool code.
    - Each `chat()` call loops up to `max_tool_rounds` (default 8): call the
-     model, and if `stop_reason == "tool_use"`, execute every requested tool
-     call, append a `tool_result` block per call in one `user` message, and
-     loop again. Returns plain text once the model stops requesting tools.
+     model, and if `finish_reason == "tool_calls"`, execute every requested
+     tool call and append one `role: "tool"` message per call. Returns plain
+     text once the model stops requesting tools.
    - Tool execution never raises into the loop: exceptions are caught and
      serialized as `{"error": ...}` JSON sent back to the model as a tool
      result, so the model can recover or explain rather than crashing.
@@ -103,7 +106,10 @@ pattern in ~80 lines:
    registry the agent dispatches through; adding a tool means adding it here
    AND to `TOOL_SCHEMAS` in schemas.py — the two are matched by name and
    kept in sync manually, nothing validates that at runtime.
-4. `tools/schemas.py` — Anthropic tool-use JSON schemas. Treat the
+4. `tools/schemas.py` — Anthropic-shaped tool-use JSON schemas
+   (`TOOL_SCHEMAS`), plus `GROQ_TOOL_SCHEMAS` — the same schemas reshaped
+   into OpenAI-style function-calling format at import time, since `groq`
+   (Phase 1's actual runtime now) speaks that shape instead. Treat the
    `description` fields as prompts, not documentation — they're what the
    model reads to decide *when* to call a tool and what to ask the user for
    first (e.g. `affordability_check`'s description is what makes the model
@@ -251,11 +257,18 @@ required to run the system.
 - Currency is INR and unstated rates/tenures follow Indian lending norms
   (e.g. FOIR thresholds in `affordability_check`, default 15% rate for
   consumer loans) — these are domain defaults, not arbitrary.
-- `MODEL` is pinned as a module constant in `agent/agent.py` (Phase 1),
-  `agents/orchestrator.py` (Phase 2), and `whatsapp/agent.py` (checkout MVP)
-  — all three read `ANTHROPIC_MODEL` with the same hardcoded fallback;
-  update all three if you change the default.
-- `langchain-anthropic` pins `anthropic<1.0.0`, so installing
-  `requirements.txt` keeps the raw SDK on 0.125.x even though `pip install
-  anthropic` alone would give you 1.0.0 — both Phase 1 and Phase 2 have been
-  verified to work against the pinned 0.125.x.
+- `MODEL` is pinned as a module constant in `agent/agent.py` (Phase 1) and
+  `agents/orchestrator.py` (Phase 2) — both read `GROQ_MODEL` with the same
+  hardcoded fallback (`openai/gpt-oss-120b`); update both if you change
+  the default. `whatsapp/agent.py` (checkout MVP) is the one deliberate
+  exception: it reads `GROQ_VISION_MODEL` instead, since decoding a
+  forwarded screenshot needs a vision-capable model and `GROQ_MODEL`'s fast
+  text models can't see images.
+- All three implementations run on Groq (via the `groq` SDK in Phase 1,
+  `langchain-groq`'s `ChatGroq` in Phase 2 and the WhatsApp MVP) — not
+  Anthropic/Claude. `tools/schemas.py`'s `TOOL_SCHEMAS` stay Anthropic-shaped
+  (name/description/input_schema) since that's still valid JSON Schema;
+  `GROQ_TOOL_SCHEMAS` in the same file is a mechanical reshape of it for
+  Phase 1's OpenAI-style tool calls. LangChain's `ChatGroq` handles the
+  reshape itself for Phase 2/the WhatsApp MVP, since those tools are
+  LangChain `@tool`-wrapped, not read from `tools/schemas.py`.

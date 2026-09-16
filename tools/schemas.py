@@ -1,7 +1,14 @@
-"""Tool schemas in Anthropic tool-use format.
+"""Tool schemas in Anthropic tool-use format (name/description/input_schema).
 
 The description fields matter a lot — the model decides *when* to call a
 tool based on them. Treat them as prompts, not documentation.
+
+agent/agent.py (Phase 1) runs on Groq now, whose Chat Completions API wants
+OpenAI-style function schemas instead — nested under "function", with
+input_schema renamed to "parameters". The schema body itself doesn't
+change (it's already JSON Schema either way), so GROQ_TOOL_SCHEMAS below is
+just a mechanical reshape of TOOL_SCHEMAS, computed once at import time
+rather than hand-duplicated.
 """
 
 TOOL_SCHEMAS = [
@@ -103,3 +110,17 @@ TOOL_SCHEMAS = [
         },
     },
 ]
+
+
+def _to_groq_tool(schema: dict) -> dict:
+    return {
+        "type": "function",
+        "function": {
+            "name": schema["name"],
+            "description": schema["description"],
+            "parameters": schema["input_schema"],
+        },
+    }
+
+
+GROQ_TOOL_SCHEMAS = [_to_groq_tool(schema) for schema in TOOL_SCHEMAS]

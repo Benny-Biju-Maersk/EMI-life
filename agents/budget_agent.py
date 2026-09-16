@@ -11,7 +11,7 @@ stateless calculation tools.
 
 from __future__ import annotations
 
-from langchain_anthropic import ChatAnthropic
+from langchain_groq import ChatGroq
 from langgraph.prebuilt import create_react_agent
 
 from agents.tools import BUDGET_TOOLS
@@ -46,7 +46,7 @@ Rules:
 """
 
 
-def build_budget_agent(model: ChatAnthropic):
+def build_budget_agent(model: ChatGroq):
     return create_react_agent(
         model,
         tools=BUDGET_TOOLS,

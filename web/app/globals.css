@@ -1,13 +1,36 @@
 @import "tailwindcss";
 
+/* Semantic tokens, not raw Tailwind grays — every widget was originally
+   written with hardcoded light-mode colors (border-gray-200, text-gray-600,
+   plain bg-black buttons), which is why the app looked washed out in dark
+   mode: those colors have poor contrast against the dark --background
+   below and never changed with it. Everything in app/ now reads through
+   these tokens (bg-card, text-muted-foreground, bg-primary, etc.) so both
+   modes stay correct from one definition, the same convention shadcn/ui
+   uses — these names are shadcn-compatible on purpose, in case real
+   shadcn components get added here later (dashboard/ already uses them). */
 :root {
-  --background: #ffffff;
+  --background: #fafafa;
   --foreground: #171717;
+  --card: #ffffff;
+  --border: #e5e7eb;
+  --muted-foreground: #6b7280;
+  --primary: #4f46e5;
+  --primary-foreground: #ffffff;
+  --destructive: #dc2626;
+  --ring: #4f46e5;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-border: var(--border);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-destructive: var(--destructive);
+  --color-ring: var(--ring);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
@@ -16,11 +39,18 @@
   :root {
     --background: #0a0a0a;
     --foreground: #ededed;
+    --card: #141414;
+    --border: #27272a;
+    --muted-foreground: #a1a1aa;
+    --primary: #6366f1;
+    --primary-foreground: #ffffff;
+    --destructive: #f87171;
+    --ring: #6366f1;
   }
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: var(--color-background);
+  color: var(--color-foreground);
   font-family: Arial, Helvetica, sans-serif;
 }

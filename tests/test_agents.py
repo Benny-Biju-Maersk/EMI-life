@@ -2,7 +2,7 @@
 
 The structural test never touches the network. The live test makes one real
 call through the full supervisor -> credit_debt_agent -> tool path and is
-skipped automatically if no ANTHROPIC_API_KEY is configured (.env or env),
+skipped automatically if no GROQ_API_KEY is configured (.env or env),
 same spirit as tests/test_tools.py staying runnable with no credentials.
 """
 
@@ -18,7 +18,7 @@ load_dotenv()
 from agents.orchestrator import build_graph  # noqa: E402  (after load_dotenv)
 
 pytestmark = pytest.mark.skipif(
-    not os.environ.get("ANTHROPIC_API_KEY"), reason="no ANTHROPIC_API_KEY configured"
+    not os.environ.get("GROQ_API_KEY"), reason="no GROQ_API_KEY configured"
 )
 
 
@@ -31,6 +31,7 @@ def test_graph_builds_with_expected_nodes():
         "markets_agent",
         "budget_agent",
         "research_agent",
+        "reminder_agent",
     } <= nodes
 
 

@@ -10,7 +10,7 @@ Same create_react_agent pattern as every other specialist in agents/.
 
 from __future__ import annotations
 
-from langchain_anthropic import ChatAnthropic
+from langchain_groq import ChatGroq
 from langgraph.prebuilt import create_react_agent
 
 from agents.tools import RESEARCH_TOOLS
@@ -37,7 +37,7 @@ Rules:
 """
 
 
-def build_research_agent(model: ChatAnthropic):
+def build_research_agent(model: ChatGroq):
     return create_react_agent(
         model,
         tools=RESEARCH_TOOLS,

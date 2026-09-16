@@ -66,7 +66,7 @@ export default function DecodePage() {
   return (
     <div className="mx-auto max-w-xl px-6 py-12">
       <h1 className="text-2xl font-semibold">Decode this EMI offer</h1>
-      <p className="mt-2 text-sm text-gray-600">
+      <p className="mt-2 text-sm text-muted-foreground">
         Fill in what the checkout screen shows you. Leave income blank if
         you&apos;d rather not share it yet — you&apos;ll still get the true
         cost, just not an affordability verdict.
@@ -95,7 +95,7 @@ export default function DecodePage() {
           value={forfeitedDiscount}
           onChange={setForfeitedDiscount}
         />
-        <hr className="my-4 border-gray-200" />
+        <hr className="my-4 border-border" />
         <Field
           label="Your monthly income (₹, optional)"
           value={monthlyIncome}
@@ -110,16 +110,16 @@ export default function DecodePage() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full rounded-md bg-black py-2 text-white transition hover:bg-gray-800 disabled:opacity-50"
+          className="w-full rounded-md bg-primary py-2 text-primary-foreground transition hover:bg-primary/90 disabled:opacity-50"
         >
           {loading ? "Decoding…" : "Decode it"}
         </button>
       </form>
 
       {result && (
-        <div className="mt-8 rounded-md border border-gray-200 p-4">
+        <div className="mt-8 rounded-xl border border-border bg-card p-4 shadow-sm">
           {result.error ? (
-            <p className="text-red-600">{result.error}</p>
+            <p className="text-destructive">{result.error}</p>
           ) : (
             <>
               <p className="text-lg font-semibold">
@@ -136,12 +136,12 @@ export default function DecodePage() {
                 />
               </dl>
               {result.affordability && (
-                <div className="mt-4 border-t border-gray-200 pt-3 text-sm">
+                <div className="mt-4 border-t border-border pt-3 text-sm">
                   <p className="font-medium">
                     Affordability:{" "}
                     {result.affordability.verdict.replace(/_/g, " ")}
                   </p>
-                  <p className="text-gray-600">
+                  <p className="text-muted-foreground">
                     FOIR after this EMI: {result.affordability.foir_pct}%
                   </p>
                 </div>
@@ -167,13 +167,13 @@ function Field({
 }) {
   return (
     <label className="block text-sm">
-      <span className="text-gray-700">{label}</span>
+      <span className="text-foreground">{label}</span>
       <input
         type="number"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         required={required}
-        className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 focus:border-black focus:outline-none"
+        className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20"
       />
     </label>
   );
@@ -183,8 +183,8 @@ function Row({ label, value }: { label: string; value?: number }) {
   if (value === undefined) return null;
   return (
     <div className="flex justify-between">
-      <dt className="text-gray-600">{label}</dt>
-      <dd>₹{value.toLocaleString("en-IN")}</dd>
+      <dt className="text-muted-foreground">{label}</dt>
+      <dd className="font-medium">₹{value.toLocaleString("en-IN")}</dd>
     </div>
   );
 }

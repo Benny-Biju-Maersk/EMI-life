@@ -1,7 +1,7 @@
 """Terminal chat with the finance agent.
 
 Usage:
-    export ANTHROPIC_API_KEY=sk-ant-...
+    export GROQ_API_KEY=gsk_...   # or set in .env
     python main.py
 """
 

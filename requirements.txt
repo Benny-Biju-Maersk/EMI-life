@@ -1,5 +1,5 @@
 # Phase 1 — single agent (agent/, main.py)
-anthropic
+groq
 yfinance
 pytest
 python-dotenv
@@ -9,7 +9,7 @@ python-dotenv
 # not retired, per docs/product-brief.md.
 langgraph
 langgraph-supervisor
-langchain-anthropic
+langchain-groq
 langchain-core
 
 # Checkout-EMI-trap MVP (whatsapp/) — see docs/product-brief.md

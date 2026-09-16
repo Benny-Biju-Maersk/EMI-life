@@ -15,6 +15,13 @@ FinanceAgent]` webhook.py used to keep in-process. Backed by SqliteSaver
 (same data/finbuddy.db file whatsapp/storage.py logs to, different table —
 LangGraph manages its own schema), so this now survives a restart too, not
 just a request.
+
+Model note: this is the one place in the repo that reads GROQ_VISION_MODEL
+instead of GROQ_MODEL — this agent's whole job is reading a forwarded
+checkout screenshot, and the text-only models used elsewhere (e.g.
+openai/gpt-oss-120b) can't see images at all. Needs a vision-capable Groq
+model (default: a Qwen3 checkpoint that supports both image input and tool
+calls — confirmed live 2026-09-05) instead.
 """
 
 from __future__ import annotations
@@ -23,7 +30,7 @@ import os
 import sqlite3
 
 from dotenv import load_dotenv
-from langchain_anthropic import ChatAnthropic
+from langchain_groq import ChatGroq
 from langgraph.checkpoint.sqlite import SqliteSaver
 from langgraph.prebuilt import create_react_agent
 
@@ -34,7 +41,7 @@ from whatsapp.storage import DB_PATH
 load_dotenv()  # self-contained, same as agent/agent.py — safe to import this
                 # module standalone rather than relying on webhook.py's call
 
-MODEL = os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-5")
+MODEL = os.environ.get("GROQ_VISION_MODEL", "qwen/qwen3.6-27b")
 
 
 def build_whatsapp_agent():
@@ -46,7 +53,7 @@ def build_whatsapp_agent():
     checkpointer = SqliteSaver(conn)
     checkpointer.setup()
 
-    model = ChatAnthropic(model=MODEL, max_tokens=1500)
+    model = ChatGroq(model=MODEL, max_tokens=1500)
     return create_react_agent(
         model,
         tools=CHECKOUT_TOOLS,

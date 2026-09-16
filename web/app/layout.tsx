@@ -41,21 +41,26 @@ export default async function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
       >
         <body className="min-h-full flex flex-col">
-          <header className="flex items-center justify-between border-b px-6 py-4">
+          <header className="sticky top-0 z-10 flex items-center justify-between border-b border-border bg-background/80 px-6 py-4 backdrop-blur-sm">
             <Link href="/" className="font-semibold tracking-tight">
-              FinBuddy
+              Fin<span className="text-primary">Buddy</span>
             </Link>
             <nav className="flex items-center gap-6 text-sm">
-              <Link href="/decode" className="text-gray-600 hover:text-black">
+              <Link href="/decode" className="text-muted-foreground transition-colors hover:text-foreground">
                 Decode an offer
               </Link>
+              {userId && (
+                <Link href="/dashboard" className="text-muted-foreground transition-colors hover:text-foreground">
+                  Dashboard
+                </Link>
+              )}
               {userId ? (
                 <UserButton />
               ) : (
                 <SignInButton>
                   <button
                     type="button"
-                    className="rounded-md bg-black px-4 py-1.5 text-white"
+                    className="rounded-md bg-primary px-4 py-1.5 text-primary-foreground transition-colors hover:bg-primary/90"
                   >
                     Sign in
                   </button>

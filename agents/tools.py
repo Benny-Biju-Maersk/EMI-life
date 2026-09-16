@@ -25,6 +25,7 @@ from tools.finance_tools import (
     get_stock_quote,
     prepayment_impact,
 )
+from tools.reminders import create_reminder
 from tools.user_profile import get_profile, save_profile_field
 from tools.web_research import get_market_news
 
@@ -200,8 +201,32 @@ def get_market_news_tool(query: str, max_results: int = 5) -> str:
     return json.dumps(get_market_news(query, max_results))
 
 
+@tool
+def create_reminder_tool(
+    user_id: str, message: str, due_date: str, recurrence: str = "none"
+) -> str:
+    """Register a reminder to be delivered LATER, unprompted — not
+    something this conversation itself sends. Use when the user asks to
+    be reminded about something (an EMI due date, a renewal, a follow-up
+    check), never for anything that should happen right now.
+
+    Args:
+        user_id: Stable identifier for the user. Use "default_user" if no
+            per-user identity system exists yet (this REPL doesn't have
+            one) — a real deployment would pass the WhatsApp number
+            ("whatsapp:+91...") so scheduler/send_reminders.py can
+            actually deliver to them later.
+        message: What to remind them of, in plain language.
+        due_date: ISO date ("YYYY-MM-DD") the reminder should first fire.
+        recurrence: "none" (fires once) or "monthly" (keeps firing on
+            roughly the same day each month). Default "none".
+    """
+    return json.dumps(create_reminder(user_id, message, due_date, recurrence))
+
+
 CREDIT_DEBT_TOOLS = [calculate_emi_tool, prepayment_impact_tool, affordability_check_tool]
 MARKETS_TOOLS = [get_stock_quote_tool]
 CHECKOUT_TOOLS = [decode_emi_offer_tool, affordability_check_tool, calculate_emi_tool]
 BUDGET_TOOLS = [get_saved_profile_tool, save_profile_field_tool, affordability_check_tool]
 RESEARCH_TOOLS = [get_market_news_tool]
+REMINDER_TOOLS = [create_reminder_tool, get_saved_profile_tool]

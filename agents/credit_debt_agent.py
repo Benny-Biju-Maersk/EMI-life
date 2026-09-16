@@ -8,7 +8,7 @@ of written out by hand.
 
 from __future__ import annotations
 
-from langchain_anthropic import ChatAnthropic
+from langchain_groq import ChatGroq
 from langgraph.prebuilt import create_react_agent
 
 from agents.tools import CREDIT_DEBT_TOOLS
@@ -26,7 +26,7 @@ Rules:
 """
 
 
-def build_credit_debt_agent(model: ChatAnthropic):
+def build_credit_debt_agent(model: ChatGroq):
     return create_react_agent(
         model,
         tools=CREDIT_DEBT_TOOLS,

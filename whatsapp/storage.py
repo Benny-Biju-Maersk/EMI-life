@@ -79,7 +79,7 @@ def _extract_text(content) -> str:
         return content
     if isinstance(content, list):
         parts = [b.get("text", "") for b in content if isinstance(b, dict) and b.get("type") == "text"]
-        has_image = any(isinstance(b, dict) and b.get("type") == "image" for b in content)
+        has_image = any(isinstance(b, dict) and b.get("type") == "image_url" for b in content)
         text = " ".join(p for p in parts if p)
         return f"[image] {text}".strip() if has_image else text
     return str(content)

@@ -6,7 +6,7 @@ Run with:
 Then tunnel it (e.g. `ngrok http 8000`) and set the tunnel's /whatsapp URL
 as the Twilio Sandbox's "when a message comes in" webhook.
 
-Required .env vars (in addition to the existing ANTHROPIC_* ones):
+Required .env vars (in addition to the existing GROQ_* ones):
     TWILIO_ACCOUNT_SID   # from the Twilio console
     TWILIO_AUTH_TOKEN    # from the Twilio console — also used to validate
                           # that incoming webhook requests really are from
@@ -83,10 +83,12 @@ async def whatsapp_webhook(request: Request) -> Response:
                 )
                 media_resp.raise_for_status()
             image_b64 = base64.b64encode(media_resp.content).decode("ascii")
+            # OpenAI/Groq-style content block, not Anthropic's {"type": "image",
+            # "source": {...}} shape — whatsapp/agent.py now runs on ChatGroq.
             content = [
                 {
-                    "type": "image",
-                    "source": {"type": "base64", "media_type": media_type, "data": image_b64},
+                    "type": "image_url",
+                    "image_url": {"url": f"data:{media_type};base64,{image_b64}"},
                 },
                 {"type": "text", "text": body or "Please evaluate this EMI/BNPL offer."},
             ]
