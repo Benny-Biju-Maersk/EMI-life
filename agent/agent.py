@@ -52,7 +52,13 @@ class FinanceAgent:
         api_key: str | None = None,
         system_prompt: str | None = None,
     ):
-        self.client = Groq(api_key=api_key or os.environ.get("GROQ_API_KEY"))
+        # timeout/max_retries above the SDK defaults: see
+        # agents/orchestrator.py's comment on ChatGroq for why (a cold-TLS-
+        # connection latency this network occasionally shows, exceeding
+        # the SDK's default 2-retry headroom).
+        self.client = Groq(
+            api_key=api_key or os.environ.get("GROQ_API_KEY"), timeout=60.0, max_retries=5
+        )
         # system_prompt lets a different persona reuse this same loop instead
         # of forking it.
         self.system_prompt = system_prompt or SYSTEM_PROMPT

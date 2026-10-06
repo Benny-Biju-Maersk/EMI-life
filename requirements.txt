@@ -13,7 +13,17 @@ langchain-groq
 langchain-core
 
 # Checkout-EMI-trap MVP (whatsapp/) — see docs/product-brief.md
-fastapi
+# fastapi>=0.140: a floor, not a whim — this repo was pinned to a stale
+# 0.115.0 resolution until adding langchain-mcp-adapters below (which pulls
+# in the `mcp` SDK, which wants a modern `starlette`) surfaced
+# `fastapi==0.115.0 requires starlette<0.39.0` as a hard conflict.
+# 0.115.0 also predates FastAPI's own Router accepting the newer Starlette
+# it now requires (Router.__init__() TypeError on on_startup/on_shutdown).
+# Upgrading fastapi itself (verified against tests/test_whatsapp.py's
+# TestClient) was the fix, not downgrading starlette back down — this repo
+# never pinned fastapi in the first place, so there was no reason to freeze
+# it at whatever version happened to resolve first.
+fastapi>=0.140
 uvicorn[standard]
 python-multipart
 twilio
@@ -21,5 +31,33 @@ httpx
 langgraph-checkpoint-sqlite
 
 # Public website backend (api/) — see docs/product-brief.md's Distribution
-# section (revised 2026-08-29) and docs/decision.md #16. No new packages:
-# api/main.py reuses fastapi/uvicorn above, just a separate app instance.
+# section (revised 2026-08-29) and docs/decision.md #16. No Clerk package
+# here on purpose: api/main.py deliberately does NOT verify Clerk sessions
+# in Python (that would mean duplicating Clerk's verification logic) —
+# web/'s own Next.js server-side routes call auth() and pass an
+# already-verified user_id. See api/main.py's module docstring.
+
+# Multi-agent council + MCP tools + RAG (agents/council.py,
+# agents/mcp_tools.py, tools/knowledge.py) — see docs/multi-agent-patterns.md.
+# langchain-mcp-adapters: the CLIENT library that talks to MCP servers over
+# stdio — it does NOT install the servers themselves. The two MCP servers
+# this repo actually uses (mcp-server-fetch, free-search-mcp) run as
+# isolated `uvx <package>` subprocesses instead of being pip-installed here,
+# deliberately: pip-installing them directly into this venv is what pulled
+# the newer `mcp` SDK/starlette combo above and broke fastapi in the first
+# place. `uv` below exists in this list purely to guarantee the `uvx`
+# executable is on the machine — nothing in this repo imports the `uv`
+# Python package itself.
+langchain-mcp-adapters
+uv
+# scikit-learn: TF-IDF + cosine similarity retrieval for tools/knowledge.py
+# — deliberately not a real embedding model (no download, fully in-process,
+# easy to explain for a learning project); swapping in real embeddings
+# later is a one-function change, see that file's docstring.
+scikit-learn
+# aiosqlite: agents/web_graph.py needs AsyncSqliteSaver, not
+# langgraph-checkpoint-sqlite's plain SqliteSaver (whatsapp/agent.py's
+# choice) — that one only supports sync checkpoint methods and raises
+# NotImplementedError under .ainvoke(), which web_graph.py's MCP/council
+# tools require.
+aiosqlite

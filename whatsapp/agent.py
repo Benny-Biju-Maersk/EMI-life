@@ -21,7 +21,11 @@ instead of GROQ_MODEL — this agent's whole job is reading a forwarded
 checkout screenshot, and the text-only models used elsewhere (e.g.
 openai/gpt-oss-120b) can't see images at all. Needs a vision-capable Groq
 model (default: a Qwen3 checkpoint that supports both image input and tool
-calls — confirmed live 2026-09-05) instead.
+calls). Groq's lineup moves fast enough that this has already gone stale
+once — qwen/qwen3.6-27b (set 2026-09-05) was retired and 404s as of
+2026-09-28; qwen/qwen3.8-27b replaced it, confirmed live the same day via
+a real image + `client.models.list()`. Re-verify before assuming either
+name still exists.
 """
 
 from __future__ import annotations
@@ -41,7 +45,7 @@ from whatsapp.storage import DB_PATH
 load_dotenv()  # self-contained, same as agent/agent.py — safe to import this
                 # module standalone rather than relying on webhook.py's call
 
-MODEL = os.environ.get("GROQ_VISION_MODEL", "qwen/qwen3.6-27b")
+MODEL = os.environ.get("GROQ_VISION_MODEL", "qwen/qwen3.8-27b")
 
 
 def build_whatsapp_agent():
@@ -53,7 +57,7 @@ def build_whatsapp_agent():
     checkpointer = SqliteSaver(conn)
     checkpointer.setup()
 
-    model = ChatGroq(model=MODEL, max_tokens=1500)
+    model = ChatGroq(model=MODEL, max_tokens=1500, timeout=60.0, max_retries=5)
     return create_react_agent(
         model,
         tools=CHECKOUT_TOOLS,

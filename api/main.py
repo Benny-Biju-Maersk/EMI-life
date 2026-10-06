@@ -42,6 +42,8 @@ dev-mode signature-validation bypass.
 
 from __future__ import annotations
 
+from contextlib import asynccontextmanager
+
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
@@ -54,6 +56,9 @@ from pydantic import BaseModel
 # had actually loaded it into the process environment yet.
 load_dotenv()
 
+from agents.council import run_council
+from agents.web_graph import ask as ask_web_graph
+from agents.web_graph import build_web_graph
 from tools.finance_tools import (
     affordability_check,
     calculate_emi,
@@ -74,7 +79,23 @@ from tools.reminders import create_reminder, get_reminders_for_user
 from tools.user_profile import get_profile, save_profile_field
 from tools.web_research import get_market_news
 
-app = FastAPI(title="FinBuddy public API")
+# Built once at process startup, not per-request — same "build once" reasoning
+# as whatsapp/webhook.py's module-level GRAPH, just via FastAPI's async
+# lifespan instead of bare import-time code, because agents/web_graph.py's
+# builder is itself async (see that module's docstring for why: it can't
+# wrap its own MCP tool loading in asyncio.run() the way
+# agents/orchestrator.py's sync build_graph() does, since a caller already
+# inside uvicorn's event loop can't nest another asyncio.run() inside it).
+_state: dict = {}
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    _state["web_graph"] = await build_web_graph()
+    yield
+
+
+app = FastAPI(title="FinBuddy public API", lifespan=lifespan)
 
 # web/ runs on a different origin (localhost:3000 in dev) than this API
 # (localhost:8001) — CORS has to be explicit or the browser blocks the
@@ -316,3 +337,70 @@ class CreateReminderRequest(BaseModel):
 @app.post("/reminders")
 def create_reminder_endpoint(req: CreateReminderRequest) -> dict:
     return create_reminder(req.user_id, req.message, req.due_date, req.recurrence)
+
+
+# ---------------------------------------------------------------------------
+# Multi-agent endpoints — same trust boundary as the rest of this section
+# (web/'s server-side route passes a Clerk-verified user_id; this API
+# doesn't re-verify it). Both are async def, unlike every sync endpoint
+# above: agents/web_graph.py's graph and agents/council.py's run_council
+# are async-only (MCP tools, parallel panelist calls) — see
+# agents/orchestrator.py's docstring for why.
+# ---------------------------------------------------------------------------
+
+
+class ChatRequest(BaseModel):
+    user_id: str
+    message: str
+
+
+@app.post("/chat")
+async def chat_endpoint(req: ChatRequest) -> dict:
+    """One turn against the full supervisor graph — every specialist, the
+    council, MCP tools — with memory persisted across calls by user_id
+    (agents/web_graph.py's checkpointer). Returns which specialist actually
+    handled it alongside the reply, same transparency chat.py's REPL trace
+    gives Phase 2 — a portal widget can show "answered by: budget_agent"
+    instead of hiding the routing.
+    """
+    graph = _state["web_graph"]
+    result = await ask_web_graph(graph, req.user_id, req.message)
+    # langgraph_supervisor's handoff mechanism appends its own synthetic
+    # "transfer_back_to_supervisor" tool messages to the trace — filter to
+    # the actual specialist names (matches orchestrator.py's agents=[...]
+    # list) rather than "not supervisor", which that artifact also passes.
+    specialist_names = {
+        "credit_debt_agent",
+        "markets_agent",
+        "budget_agent",
+        "research_agent",
+        "reminder_agent",
+        "council_agent",
+    }
+    handled_by = [
+        name
+        for msg in result["messages"]
+        if (name := getattr(msg, "name", None)) in specialist_names
+    ]
+    return {
+        "reply": result["messages"][-1].content,
+        "handled_by": handled_by[-1] if handled_by else None,
+    }
+
+
+class CouncilRequest(BaseModel):
+    user_id: str
+    question: str
+    context: dict | None = None
+
+
+@app.post("/council")
+async def council_endpoint(req: CouncilRequest) -> dict:
+    """Direct council consult, bypassing supervisor routing entirely — for
+    a dedicated "Ask the Council" widget where the user has already chosen
+    to see multiple independent opinions, not just FinBuddy's one answer.
+    `context` is typically the caller's own saved profile (income, loans),
+    fetched server-side so the panelists reason from real numbers instead
+    of asking the user to retype them — see web/app/api/council/route.ts.
+    """
+    return await run_council(req.question, req.context)

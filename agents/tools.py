@@ -25,6 +25,7 @@ from tools.finance_tools import (
     get_stock_quote,
     prepayment_impact,
 )
+from tools.knowledge import answer_from_knowledge_base
 from tools.reminders import create_reminder
 from tools.user_profile import get_profile, save_profile_field
 from tools.web_research import get_market_news
@@ -224,9 +225,30 @@ def create_reminder_tool(
     return json.dumps(create_reminder(user_id, message, due_date, recurrence))
 
 
+@tool
+def answer_from_knowledge_base_tool(query: str, top_k: int = 3) -> str:
+    """Look up FinBuddy's own curated facts (FOIR/affordability rules, what
+    'no-cost EMI' actually hides, credit score factors, the SEBI-RIA line on
+    why FinBuddy never gives personalized investment advice) — stable
+    domain knowledge, not something that changes day to day. Prefer this
+    over a live web search for anything that's really a definition or a
+    rule rather than current events; an empty result means it's not in
+    here, not that the answer is 'no'.
+
+    Args:
+        query: What you want to know, in plain language.
+        top_k: Maximum matching passages to return, default 3.
+    """
+    return json.dumps(answer_from_knowledge_base(query, top_k))
+
+
 CREDIT_DEBT_TOOLS = [calculate_emi_tool, prepayment_impact_tool, affordability_check_tool]
 MARKETS_TOOLS = [get_stock_quote_tool]
 CHECKOUT_TOOLS = [decode_emi_offer_tool, affordability_check_tool, calculate_emi_tool]
 BUDGET_TOOLS = [get_saved_profile_tool, save_profile_field_tool, affordability_check_tool]
-RESEARCH_TOOLS = [get_market_news_tool]
+# MCP tools (mcp-server-fetch, free-search-mcp) are appended to this list at
+# graph-build time by agents/orchestrator.py — see agents/mcp_tools.py for
+# why they're loaded separately (async-only) instead of living here as a
+# plain module-level list like everything else.
+RESEARCH_TOOLS = [get_market_news_tool, answer_from_knowledge_base_tool]
 REMINDER_TOOLS = [create_reminder_tool, get_saved_profile_tool]

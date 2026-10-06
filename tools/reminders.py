@@ -68,12 +68,15 @@ def create_reminder(
 
 
 def get_reminders_for_user(user_id: str) -> list[dict]:
-    """Every reminder belonging to a user, due or not, sent or not — for
-    a UI listing ("my reminders"), not the scheduler's "what's due right
-    now" question (that's get_due_reminders below)."""
+    """Every reminder belonging to one user, soonest-due first — for a
+    dashboard widget ("your upcoming reminders"), not the scheduler's job.
+    Unlike get_due_reminders (below), this isn't filtered by date or
+    already-sent status: a user should see a reminder they set for next
+    month, not just ones about to fire."""
     with _get_connection() as conn:
         rows = conn.execute(
-            "SELECT * FROM reminders WHERE user_id = ? ORDER BY due_date", (user_id,)
+            "SELECT * FROM reminders WHERE user_id = ? ORDER BY due_date ASC",
+            (user_id,),
         ).fetchall()
     return [dict(row) for row in rows]
 

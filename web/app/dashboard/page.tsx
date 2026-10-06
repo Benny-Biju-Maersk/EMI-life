@@ -1,6 +1,8 @@
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { BudgetSnapshotWidget } from "./_components/BudgetSnapshotWidget";
+import { ChatWidget } from "./_components/ChatWidget";
+import { CouncilWidget } from "./_components/CouncilWidget";
 import { DecodeOfferCard } from "./_components/DecodeOfferCard";
 import { EmiCalculatorWidget } from "./_components/EmiCalculatorWidget";
 import { ExpensesWidget } from "./_components/ExpensesWidget";
@@ -52,6 +54,9 @@ export default async function DashboardPage() {
       </p>
 
       <div className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-2">
+        <div className="md:col-span-2">
+          <ChatWidget />
+        </div>
         <ProfileWidget />
         <BudgetSnapshotWidget />
         <LoansWidget />
@@ -62,6 +67,9 @@ export default async function DashboardPage() {
         <EmiCalculatorWidget />
         <StockQuoteWidget />
         <MarketNewsWidget />
+        <div className="md:col-span-2">
+          <CouncilWidget />
+        </div>
       </div>
     </div>
   );
